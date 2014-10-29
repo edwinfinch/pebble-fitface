@@ -1,0 +1,88 @@
+{
+    "appKeys": {
+        "action": 20,
+        "cals_burned_g": 9,
+        "cals_burned_v": 3,
+        "cals_eaten_v": 4,
+        "cals_left_v": 5,
+        "distance_g": 8,
+        "distance_v": 2,
+        "distance_g_mi": 14,
+        "distance_v_mi": 15,
+        "mins_g": 7,
+        "mins_v": 1,
+        "steps_g": 6,
+        "steps_v": 0,
+        "batteryPercent": 12,
+        "userUsesImperial" : 13,
+        "loading_data": 16
+    },
+    "capabilities": [
+        "configurable"
+    ],
+    "companyName": "Edwin Finch",
+    "longName": "FF Beta 5",
+    "projectType": "native",
+    "resources": {
+        "media": [
+            {
+                "file": "images/bt_icon.png",
+                "name": "BT_ICON",
+                "type": "png"
+            },
+            {
+                "file": "images/menu_icon.png",
+                "menuIcon": true,
+                "name": "menuicon",
+                "type": "png"
+            },
+            {
+                "file": "images/arrow_alt_left.png",
+                "name": "IMAGE_LEFT_ICON",
+                "type": "png"
+            },
+            {
+                "file": "images/location-icon-hi.png",
+                "name": "IMAGE_DISTANCE_ICON",
+                "type": "png"
+            },
+            {
+                "file": "images/fire_icon.png",
+                "name": "IMAGE_FIRE_ICON",
+                "type": "png"
+            },
+            {
+                "file": "images/bread_icon.png",
+                "name": "IMAGE_CALS_ICON",
+                "type": "png"
+            },
+            {
+                "file": "images/shoe_icon.png",
+                "name": "IMAGE_SHOE_ICON",
+                "type": "png"
+            },
+            {
+                "file": "images/clock_icon.png",
+                "name": "IMAGE_TIME_ICON",
+                "type": "png"
+            },
+            {
+                "file": "fonts/impact.ttf",
+                "name": "FONT_IMPACT_32",
+                "type": "font"
+            },
+            {
+                "file": "images/battery_icon.png",
+                "name": "IMAGE_BATTERY_ICON",
+                "type": "png"
+            }
+        ]
+    },
+    "shortName": "FF Beta 5",
+    "uuid": "5058779b-40f4-48d8-8dcd-2c94b1e14218",
+    "versionCode": 4,
+    "versionLabel": "0.4",
+    "watchapp": {
+        "watchface": true
+    }
+}
