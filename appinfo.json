@@ -21,7 +21,8 @@
         "batterybar": 19,
         "date": 20,
         "theme": 21,
-        "debug": 22
+        "debug": 22,
+        "error": 23
     },
     "capabilities": [
         "configurable"
@@ -86,8 +87,8 @@
     },
     "shortName": "FitFace",
     "uuid": "5058779b-40f4-48d8-8dcd-2c94b1e14218",
-    "versionCode": 4,
-    "versionLabel": "0.4",
+    "versionCode": 6,
+    "versionLabel": "1.0",
     "watchapp": {
         "watchface": true
     }

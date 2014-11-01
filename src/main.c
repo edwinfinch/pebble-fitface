@@ -1,6 +1,8 @@
 #include <pebble.h>
 #include "main.h"
-#include "strap/strap.h"
+#include "notification.h"
+#include "extras.h"
+
 void loading_animation(bool start);
 void get_data();
 void shake_handler(AccelAxisType axis, int32_t direction);
@@ -63,34 +65,34 @@ void refresh_bar(int bar){
 	
 	switch(bar){
 		case 0:
-			current_rect = layer_get_frame(inverter_layer_get_layer(calories_b));
-			text_layer_set_text(calories_v, buffer[0]);
-			animate_layer(inverter_layer_get_layer(calories_b), &current_rect, &togo_rect, 1000, 0);
+			current_rect = layer_get_frame(inverter_layer_get_layer(bar_0_inv));
+			text_layer_set_text(bar_0, buffer[0]);
+			animate_layer(inverter_layer_get_layer(bar_0_inv), &current_rect, &togo_rect, 1000, 0);
 			break;
 		case 1:
-			current_rect = layer_get_frame(inverter_layer_get_layer(active_b));
-			text_layer_set_text(active_v, buffer[1]);
-			animate_layer(inverter_layer_get_layer(active_b), &current_rect, &togo_rect, 1000, 0);
+			current_rect = layer_get_frame(inverter_layer_get_layer(bar_1_inv));
+			text_layer_set_text(bar_1, buffer[1]);
+			animate_layer(inverter_layer_get_layer(bar_1_inv), &current_rect, &togo_rect, 1000, 0);
 			break;
 		case 2:
-			current_rect = layer_get_frame(inverter_layer_get_layer(steps_b));
-			text_layer_set_text(steps_v, buffer[2]);
-			animate_layer(inverter_layer_get_layer(steps_b), &current_rect, &togo_rect, 1000, 0);
+			current_rect = layer_get_frame(inverter_layer_get_layer(bar_2_inv));
+			text_layer_set_text(bar_2, buffer[2]);
+			animate_layer(inverter_layer_get_layer(bar_2_inv), &current_rect, &togo_rect, 1000, 0);
 			break;
 		case 3:
-			current_rect = layer_get_frame(inverter_layer_get_layer(distance_b));
-			text_layer_set_text(distance_v, buffer[3]);
-			animate_layer(inverter_layer_get_layer(distance_b), &current_rect, &togo_rect, 1000, 0);
+			current_rect = layer_get_frame(inverter_layer_get_layer(bar_3_inv));
+			text_layer_set_text(bar_3, buffer[3]);
+			animate_layer(inverter_layer_get_layer(bar_3_inv), &current_rect, &togo_rect, 1000, 0);
 			break;
 		case 4:
-			current_rect = layer_get_frame(inverter_layer_get_layer(calories_b));
-			text_layer_set_text(calories_v, buffer[4]);
-			animate_layer(inverter_layer_get_layer(calories_b), &current_rect, &togo_rect, 1000, 0);
+			current_rect = layer_get_frame(inverter_layer_get_layer(bar_0_inv));
+			text_layer_set_text(bar_0, buffer[4]);
+			animate_layer(inverter_layer_get_layer(bar_0_inv), &current_rect, &togo_rect, 1000, 0);
 			break;
 		case 5:
-			current_rect = layer_get_frame(inverter_layer_get_layer(distance_b));
-			text_layer_set_text(active_v, buffer[5]);
-			animate_layer(inverter_layer_get_layer(distance_b), &current_rect, &togo_rect, 1000, 0);
+			current_rect = layer_get_frame(inverter_layer_get_layer(bar_3_inv));
+			text_layer_set_text(bar_1, buffer[5]);
+			animate_layer(inverter_layer_get_layer(bar_3_inv), &current_rect, &togo_rect, 1000, 0);
 			break;
 	}
 }
@@ -117,10 +119,10 @@ void battery_handler(BatteryChargeState state){
 
 void bt_handler(bool connected){
 	if(connected && settings.btrealert){
-		vibes_double_pulse();
+		notif_layer_push_notif("Bluetooth", "Bluetooth connection reestablished with phone.", 2, 5000);
 	}
 	else if(!connected && settings.btdisalert){
-		vibes_long_pulse();
+		notif_layer_push_notif("Bluetooth", "Bluetooth disconnected from phone.", 1, 4000);
 	}
 }
 
@@ -147,14 +149,14 @@ void process_tuple(Tuple *t){
 	if(settings.debug){APP_LOG(APP_LOG_LEVEL_INFO, "key: %d, data %d", key, value);}
 	switch(key){
 		case 0:
-			main_data.current_values[2] = value;
+			main_data.current_values[1] = value;
 			//strap_log_event("/settings_save");
 			loading_animation(false);
 			app_timer_cancel(new_data_timer);
 			new_data_timer = app_timer_register(3000000, get_data, NULL);
 			break;
 		case 1:
-			main_data.current_values[1] = value;
+			main_data.current_values[2] = value;
 			break;
 		case 2:
 			main_data.current_values[3] = value;
@@ -169,10 +171,10 @@ void process_tuple(Tuple *t){
 			main_data.current_values[5] = value;
 			break;
 		case 6:
-			main_data.goals[2] = value;
+			main_data.goals[1] = value;
 			break;
 		case 7:
-			main_data.goals[1] = value;
+			main_data.goals[2] = value;
 			break;
 		case 8:
 			main_data.goals[3] = value;
@@ -230,6 +232,25 @@ void process_tuple(Tuple *t){
 			break;
 		case 22:
 			settings.debug = value;
+			break;
+		case 23:
+			app_timer_cancel(refresh_timer);
+			switch(value){
+				case 1:
+					notif_layer_push_notif("FitFace", "Error 404: No token. Please enter a token manually on the Fitface settings page.", 3, 15000);
+					text_layer_set_text(bar_1, "404");
+					break;
+				case 2:
+					notif_layer_push_notif("FitFace", "Error 401: No access. Please email contact@edwinfinch.com to get your account reset.", 3, 15000);
+					text_layer_set_text(bar_1, "401");
+					break;
+			}
+			loading_animation(false);
+			app_timer_cancel(new_data_timer);
+			new_data_timer = app_timer_register(3000000, get_data, NULL);
+			text_layer_set_text(bar_0, "Error");
+			text_layer_set_text(bar_2, "Contact");
+			text_layer_set_text(bar_3, "Edwin Finch");
 			break;
 	}
 }
@@ -308,18 +329,18 @@ void loading_proc(Layer *l, GContext *ctx){
 void shake_handler(AccelAxisType axis, int32_t direction){
 	alt_data_showing = !alt_data_showing;
 	if(!alt_data_showing){
-		GRect current_f1 = layer_get_frame(inverter_layer_get_layer(active_b));
-		animate_layer(inverter_layer_get_layer(active_b), &current_f1, &GRect(0, bar_heights[1], 0, BAR_WIDTH), 1000, 0);
-		GRect current_f2 = layer_get_frame(inverter_layer_get_layer(steps_b));
-		animate_layer(inverter_layer_get_layer(steps_b), &current_f2, &GRect(0, bar_heights[2], 0, BAR_WIDTH), 1000, 0);
+		GRect current_f1 = layer_get_frame(inverter_layer_get_layer(bar_1_inv));
+		animate_layer(inverter_layer_get_layer(bar_1_inv), &current_f1, &GRect(0, bar_heights[1], 0, BAR_WIDTH), 1000, 0);
+		GRect current_f2 = layer_get_frame(inverter_layer_get_layer(bar_2_inv));
+		animate_layer(inverter_layer_get_layer(bar_2_inv), &current_f2, &GRect(0, bar_heights[2], 0, BAR_WIDTH), 1000, 0);
 
-		Layer *layer_steps_v = text_layer_get_layer(steps_v);
-		Layer *layer_distance_v = text_layer_get_layer(distance_v);
-		GetRekt current_layer3 = layer_get_frame(layer_steps_v);
-		GetRekt current_layer4 = layer_get_frame(layer_distance_v);
+		Layer *layer_bar_2 = text_layer_get_layer(bar_2);
+		Layer *layer_bar_3 = text_layer_get_layer(bar_3);
+		GetRekt current_layer3 = layer_get_frame(layer_bar_2);
+		GetRekt current_layer4 = layer_get_frame(layer_bar_3);
 
-		animate_layer(layer_steps_v, &current_layer3, &GRect(16, bar_heights[2]-4, 118, 38), 700, 0);
-		animate_layer(layer_distance_v, &current_layer4, &GRect(16, bar_heights[3]-4, 118, 38), 700, 0); 
+		animate_layer(layer_bar_2, &current_layer3, &GRect(16, bar_heights[2]-4, 118, 38), 700, 0);
+		animate_layer(layer_bar_3, &current_layer4, &GRect(16, bar_heights[3]-4, 118, 38), 700, 0); 
 
 		bitmap_layer_set_bitmap(iconlayer_1, cals_eaten);
 		bitmap_layer_set_bitmap(iconlayer_2, cals_left_i);
@@ -328,11 +349,11 @@ void shake_handler(AccelAxisType axis, int32_t direction){
 
 		static char buffer[] = "Heavy/Medium (battery)";
 		snprintf(buffer, sizeof(buffer), "Fitbit: %s", main_data.battery[0]);
-		text_layer_set_text(distance_v, buffer);
+		text_layer_set_text(bar_3, buffer);
 
 		static char bt_buffer[] = "Disconnected.";
 		snprintf(bt_buffer, sizeof(buffer), "%s.", bt_bools[bluetooth_connection_service_peek()]);
-		text_layer_set_text(steps_v, bt_buffer);
+		text_layer_set_text(bar_2, bt_buffer);
 
 		refresh_bar(4);
 		refresh_bar(5);
@@ -352,13 +373,13 @@ void shake_handler(AccelAxisType axis, int32_t direction){
 		refresh_bar(2);
 		refresh_bar(3);
 
-		Layer *layer_steps_v = text_layer_get_layer(steps_v);
-		Layer *layer_distance_v = text_layer_get_layer(distance_v);
-		GetRekt current_layer3 = layer_get_frame(layer_steps_v);
-		GetRekt current_layer4 = layer_get_frame(layer_distance_v);
+		Layer *layer_bar_2 = text_layer_get_layer(bar_2);
+		Layer *layer_bar_3 = text_layer_get_layer(bar_3);
+		GetRekt current_layer3 = layer_get_frame(layer_bar_2);
+		GetRekt current_layer4 = layer_get_frame(layer_bar_3);
 
-		animate_layer(layer_steps_v, &current_layer3, &GRect(26, bar_heights[2]-4, 118, 38), 700, 0);
-		animate_layer(layer_distance_v, &current_layer4, &GRect(26, bar_heights[3]-4, 118, 38), 700, 0); 
+		animate_layer(layer_bar_2, &current_layer3, &GRect(26, bar_heights[2]-4, 118, 38), 700, 0);
+		animate_layer(layer_bar_3, &current_layer4, &GRect(26, bar_heights[3]-4, 118, 38), 700, 0); 
 		/*
 		size_t free_m = heap_bytes_free();
 		APP_LOG(APP_LOG_LEVEL_INFO, "%d bytes free", free_m);
@@ -373,11 +394,11 @@ void window_load(Window *w){
 	text_layer_set_text_alignment(time_layer, GTextAlignmentCenter);
 	text_layer_set_text(time_layer, "00 00");
 
-	day_layer = text_layer_init(GRect(0, 72, 24, 38), true);
+	day_layer = text_layer_init(GRect(0, 76, 24, 38), true);
 	text_layer_set_text_alignment(day_layer, GTextAlignmentCenter);
 	layer_add_child(window_layer, text_layer_get_layer(day_layer));
 	
-	day_layer_num = text_layer_init(GRect(120, 72, 24, 38), true);
+	day_layer_num = text_layer_init(GRect(120, 76, 24, 38), true);
 	text_layer_set_text_alignment(day_layer_num, GTextAlignmentCenter);
 	layer_add_child(window_layer, text_layer_get_layer(day_layer_num));
 
@@ -405,11 +426,11 @@ void window_load(Window *w){
 	layer_add_child(window_layer, bitmap_layer_get_layer(iconlayer_1));
 	
 	iconlayer_2 = bitmap_layer_create(GRect(0, bar_heights[1]+2, 24, 24));
-	bitmap_layer_set_bitmap(iconlayer_2, time_i);
+	bitmap_layer_set_bitmap(iconlayer_2, shoe_i);
 	layer_add_child(window_layer, bitmap_layer_get_layer(iconlayer_2));
 	
 	iconlayer_3 = bitmap_layer_create(GRect(0, bar_heights[2]+2, 24, 24));
-	bitmap_layer_set_bitmap(iconlayer_3, shoe_i);
+	bitmap_layer_set_bitmap(iconlayer_3, time_i);
 	layer_add_child(window_layer, bitmap_layer_get_layer(iconlayer_3));
 
 	iconlayer_4 = bitmap_layer_create(GRect(0, bar_heights[3]+2, 24, 24));
@@ -419,44 +440,46 @@ void window_load(Window *w){
 	layer_add_child(window_layer, text_layer_get_layer(time_layer));
 	layer_add_child(window_layer, battery_layer);
 	
-	calories_v = text_layer_init(GRect(26, bar_heights[0]-4, 118, 38), true);
-	text_layer_set_font(calories_v, fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD));
-	text_layer_set_text_alignment(calories_v, GTextAlignmentLeft);
-	text_layer_set_text(calories_v, "Calories");
-	layer_add_child(window_layer, text_layer_get_layer(calories_v));
+	bar_0 = text_layer_init(GRect(26, bar_heights[0]-4, 118, 38), true);
+	text_layer_set_font(bar_0, fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD));
+	text_layer_set_text_alignment(bar_0, GTextAlignmentLeft);
+	text_layer_set_text(bar_0, "Calories");
+	layer_add_child(window_layer, text_layer_get_layer(bar_0));
 	
-	active_v = text_layer_init(GRect(26, bar_heights[1]-4, 118, 38), true);
-	text_layer_set_font(active_v, fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD));
-	text_layer_set_text_alignment(active_v, GTextAlignmentLeft);
-	text_layer_set_text(active_v, "Minutes");
-	layer_add_child(window_layer, text_layer_get_layer(active_v));
+	bar_1 = text_layer_init(GRect(26, bar_heights[1]-4, 118, 38), true);
+	text_layer_set_font(bar_1, fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD));
+	text_layer_set_text_alignment(bar_1, GTextAlignmentLeft);
+	text_layer_set_text(bar_1, "Minutes");
+	layer_add_child(window_layer, text_layer_get_layer(bar_1));
 	
-	steps_v = text_layer_init(GRect(26, bar_heights[2]-4, 118, 38), true);
-	text_layer_set_font(steps_v, fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD));
-	text_layer_set_text_alignment(steps_v, GTextAlignmentLeft);
-	text_layer_set_text(steps_v, "Steps");
-	layer_add_child(window_layer, text_layer_get_layer(steps_v));
+	bar_2 = text_layer_init(GRect(26, bar_heights[2]-4, 118, 38), true);
+	text_layer_set_font(bar_2, fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD));
+	text_layer_set_text_alignment(bar_2, GTextAlignmentLeft);
+	text_layer_set_text(bar_2, "Steps");
+	layer_add_child(window_layer, text_layer_get_layer(bar_2));
 	
-	distance_v = text_layer_init(GRect(26, bar_heights[3]-4, 118, 38), true);
-	text_layer_set_font(distance_v, fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD));
-	text_layer_set_text_alignment(distance_v, GTextAlignmentLeft);
-	text_layer_set_text(distance_v, "Distance");
-	layer_add_child(window_layer, text_layer_get_layer(distance_v));
+	bar_3 = text_layer_init(GRect(26, bar_heights[3]-4, 118, 38), true);
+	text_layer_set_font(bar_3, fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD));
+	text_layer_set_text_alignment(bar_3, GTextAlignmentLeft);
+	text_layer_set_text(bar_3, "Distance");
+	layer_add_child(window_layer, text_layer_get_layer(bar_3));
 	
-	calories_b = inverter_layer_create(GRect(0, bar_heights[0], 0, BAR_WIDTH));
-	layer_add_child(window_layer, inverter_layer_get_layer(calories_b));
+	bar_0_inv = inverter_layer_create(GRect(0, bar_heights[0], 0, BAR_WIDTH));
+	layer_add_child(window_layer, inverter_layer_get_layer(bar_0_inv));
 	
-	active_b = inverter_layer_create(GRect(0, bar_heights[1], 0, BAR_WIDTH));
-	layer_add_child(window_layer, inverter_layer_get_layer(active_b));
+	bar_1_inv = inverter_layer_create(GRect(0, bar_heights[1], 0, BAR_WIDTH));
+	layer_add_child(window_layer, inverter_layer_get_layer(bar_1_inv));
 	
-	steps_b = inverter_layer_create(GRect(0, bar_heights[2], 0, BAR_WIDTH));
-	layer_add_child(window_layer, inverter_layer_get_layer(steps_b));
+	bar_2_inv = inverter_layer_create(GRect(0, bar_heights[2], 0, BAR_WIDTH));
+	layer_add_child(window_layer, inverter_layer_get_layer(bar_2_inv));
 	
-	distance_b = inverter_layer_create(GRect(0, bar_heights[3], 0, BAR_WIDTH));
-	layer_add_child(window_layer, inverter_layer_get_layer(distance_b));
+	bar_3_inv = inverter_layer_create(GRect(0, bar_heights[3], 0, BAR_WIDTH));
+	layer_add_child(window_layer, inverter_layer_get_layer(bar_3_inv));
 
 	theme = inverter_layer_create(GetRekt(0, 0, 144, 168));
 	layer_add_child(window_layer, inverter_layer_get_layer(theme));
+
+	notif_layer_init(window);
 	
 	struct tm *t;
   	time_t temp;        

@@ -1,7 +1,7 @@
 var configUrl = "http://www.edwinfinch.com/fitface/fitpebble-php/?token=";
 
 Pebble.addEventListener("showConfiguration", function(e) {
-    Pebble.openURL(configUrl + Pebble.getAccountToken());
+    Pebble.openURL(configUrl + getToken());
 });
 
 Pebble.addEventListener("webviewclosed", function(e){
@@ -14,11 +14,28 @@ Pebble.addEventListener("webviewclosed", function(e){
         for(var key in values) {
             localStorage.setItem(key, values[key]);
         }    
+        localStorage.setItem("custToken", values.token);
         Pebble.sendAppMessage(
             values
         );
     }
 });
+
+function getToken(){
+    var accToken = Pebble.getAccountToken();
+    var localToken = localStorage.getItem("custToken");
+    if(accToken.length > 1){
+        localStorage.setItem("custToken", accToken);
+        return accToken;
+    }
+    else if(localToken.length > 5){
+        return localToken;
+    }
+    else{
+        Pebble.sendAppMessage({"error":1});
+        return 1337;
+    }
+}
 
 function getData() {
     Pebble.sendAppMessage({
@@ -26,12 +43,18 @@ function getData() {
     });
     var response;
     var req = new XMLHttpRequest();
-    req.open('GET', "http://edwinfinch.com/fitface/fitpebble-php/request.php?js=fitface&token=" + Pebble.getAccountToken(), true);
-    console.log("http://edwinfinch.com/fitface/fitpebble-php/request.php?js=fitface&token=" + Pebble.getAccountToken());
+    req.open('GET', "http://edwinfinch.com/fitface/fitpebble-php/request.php?js=fitface&token=" + getToken(), true);
+    console.log("http://edwinfinch.com/fitface/fitpebble-php/request.php?js=fitface&token=" + getToken());
     req.onload = function(e){
         if (req.readyState == 4) {
             if(req.status == 200) {
             console.log(req.responseText);
+
+            if(req.responseText.indexOf("401") != -1){
+                Pebble.sendAppMessage({"error":2});
+                return;
+            }
+
             data = JSON.parse(req.responseText);
             console.log("Response: " + data);
 
