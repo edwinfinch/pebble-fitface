@@ -2,11 +2,16 @@
 #include "main.h"
 #include "strap/strap.h"
 void loading_animation(bool start);
+void get_data();
+void shake_handler(AccelAxisType axis, int32_t direction);
+
+#define GetRekt GRect
 	
-char* floatToString(char* buffer, int bufferSize, double number){
+char* floatToString(double number){
+	static char buffer[] = "Hello world!";
 	char decimalBuffer[5];
 
-	snprintf(buffer, bufferSize, "%d", (int)number);
+	snprintf(buffer, 15, "%d", (int)number);
 	strcat(buffer, ".");
 
 	snprintf(decimalBuffer, 5, "%02d", (int)((double)(number - (int)number) * (double)100));
@@ -16,21 +21,21 @@ char* floatToString(char* buffer, int bufferSize, double number){
 }
 
 void refresh_bar(int bar){
-	float pre_data[2] = {
+	double pre_data[2] = {
 		0, 0
 	};
-	pre_data[0] = (float)main_data.current_values[bar];
-	pre_data[1] = (float)main_data.goals[bar];
+	pre_data[0] = (double)main_data.current_values[bar];
+	pre_data[1] = (double)main_data.goals[bar];
 
 	bool distance = false;
 	if(main_data.imperial && bar == 3){
 		distance = true;
-		pre_data[0] = (float)(main_data.distanceMI[0])/100;
-		pre_data[1] = (float)(main_data.distanceMI[1])/100;
+		pre_data[0] = (double)(main_data.distanceMI[0])/100;
+		pre_data[1] = (double)(main_data.distanceMI[1])/100;
 	}
 	else if(!main_data.imperial && bar == 3){
-		pre_data[0] = (float)(main_data.current_values[bar])/100;
-		pre_data[1] = (float)(main_data.goals[bar])/100;
+		pre_data[0] = (double)(main_data.current_values[bar])/100;
+		pre_data[1] = (double)(main_data.goals[bar])/100;
 		distance = true;
 	}
 	
@@ -45,12 +50,14 @@ void refresh_bar(int bar){
 	}
 	else{
 		if(main_data.imperial){
-			floatToString(buffer[bar], 12, (double)pre_data[0]);
-			//snprintf(buffer[bar], sizeof(buffer[bar]), "~%s mi", );
+			static char buffer_[] = "Hello world!";
+			strcpy(buffer_, floatToString(pre_data[0]));
+			snprintf(buffer[bar], sizeof(buffer[bar]), "~%s mi", buffer_);
 		}
 		else{
-			floatToString(buffer[bar], 12, (double)pre_data[0]);
-			//snprintf(buffer[bar], sizeof(buffer[bar]), "~%s km", floatToString(buffer[bar], 12, (double)pre_data[0]));
+			static char buffer_[] = "Hello world!";
+			strcpy(buffer_, floatToString(pre_data[0]));
+			snprintf(buffer[bar], sizeof(buffer[bar]), "~%s km", buffer_);
 		}
 	}
 	
@@ -82,7 +89,7 @@ void refresh_bar(int bar){
 			break;
 		case 5:
 			current_rect = layer_get_frame(inverter_layer_get_layer(distance_b));
-			text_layer_set_text(distance_v, buffer[5]);
+			text_layer_set_text(active_v, buffer[5]);
 			animate_layer(inverter_layer_get_layer(distance_b), &current_rect, &togo_rect, 1000, 0);
 			break;
 	}
@@ -92,16 +99,15 @@ void refresh_callback(){
 	for(int i = 0; i < 4; i++){
 		refresh_bar(i);
 	}
+	size_t free_m = heap_bytes_free();
+	if(settings.debug){APP_LOG(APP_LOG_LEVEL_INFO, "%d bytes free", free_m);}
 }
 
-void bt_handler(bool connected){
-	if(connected){
-		bitmap_layer_set_bitmap(bt_icon_layer, bt_icon);
-	}
-	else{
-		bitmap_layer_set_bitmap(bt_icon_layer, NULL);
-	}
-	layer_mark_dirty(bitmap_layer_get_layer(bt_icon_layer));
+void refresh_settings(){
+	layer_set_hidden(battery_layer, settings.batterybar);
+	layer_set_hidden(inverter_layer_get_layer(theme), settings.theme);
+	layer_set_hidden(text_layer_get_layer(day_layer), settings.date);
+	layer_set_hidden(text_layer_get_layer(day_layer_num), settings.date);
 }
 
 void battery_handler(BatteryChargeState state){
@@ -109,14 +115,12 @@ void battery_handler(BatteryChargeState state){
 	layer_mark_dirty(battery_layer);
 }
 
-void settings_loaded(){
-	alt_data_showing = false;
-	for(int i = 0; i < 4; i++){
-		refresh_bar(i);
+void bt_handler(bool connected){
+	if(connected && settings.btrealert){
+		vibes_double_pulse();
 	}
-	if(alt_data_showing){
-		refresh_bar(4);
-		refresh_bar(5);
+	else if(!connected && settings.btdisalert){
+		vibes_long_pulse();
 	}
 }
 
@@ -140,12 +144,14 @@ void loading_animation(bool start){
 void process_tuple(Tuple *t){
 	int key = t->key;
 	int value = t->value->int32;
-	APP_LOG(APP_LOG_LEVEL_INFO, "key: %d, data %d", key, value);
+	if(settings.debug){APP_LOG(APP_LOG_LEVEL_INFO, "key: %d, data %d", key, value);}
 	switch(key){
 		case 0:
 			main_data.current_values[2] = value;
-			strap_log_event("/settings_save");
+			//strap_log_event("/settings_save");
 			loading_animation(false);
+			app_timer_cancel(new_data_timer);
+			new_data_timer = app_timer_register(3000000, get_data, NULL);
 			break;
 		case 1:
 			main_data.current_values[1] = value;
@@ -184,16 +190,18 @@ void process_tuple(Tuple *t){
 			strcpy(main_data.battery[0], t->value->cstring);
 			static char buffer[] = "Battery medium......s";
 			snprintf(buffer, sizeof(buffer), "/battery_%s", t->value->cstring);
-			strap_log_event(buffer);
+			//strap_log_event(buffer);
 			break;
 		case 13:
 			main_data.imperial = value;
+			/*
 			if(value){
 				strap_log_event("/uses_imperial");
 			}
 			else{
 				strap_log_event("/uses_metric");
 			}
+			*/
 			break;
 		case 14:
 			main_data.distanceMI[1] = value;
@@ -204,12 +212,31 @@ void process_tuple(Tuple *t){
 		case 16:
 			loading_animation(true);
 			break;
+		case 17:
+			settings.btdisalert = value;
+			settings_refresh = app_timer_register(500, refresh_settings, NULL);
+			break;
+		case 18:
+			settings.btrealert = value;
+			break;
+		case 19:
+			settings.batterybar = value;
+			break;
+		case 20:
+			settings.date = value;
+			break;
+		case 21:
+			settings.theme = value;
+			break;
+		case 22:
+			settings.debug = value;
+			break;
 	}
 }
 
 void rec_handler(DictionaryIterator *iter, void *context){
 	Tuple *t = dict_read_first(iter);
-	refresh_timer = app_timer_register(500, settings_loaded, NULL);
+	refresh_timer = app_timer_register(500, refresh_callback, NULL);
 	if(t)
 	{
 		process_tuple(t);
@@ -241,14 +268,18 @@ void tick_handler(struct tm *t, TimeUnits unit){
    	else{
 		strftime(buffer,sizeof(buffer), "%I:%M", t);
 	}
-	static char d_buffer[] = "Fri. xx.xx.'xx...";
-	strftime(d_buffer, sizeof(d_buffer), "%a %d.%m.'%y", t);
-	
 	text_layer_set_text(time_layer, buffer);
-	text_layer_set_text(date_layer, d_buffer);
-	if(t->tm_min % 5 == 0){
-		strap_log_event("/get_data_5m");
-		get_data();
+
+	static char d_buffer_tx[] = "Wed.";
+	strftime(d_buffer_tx, sizeof(d_buffer_tx), "%a", t);
+	text_layer_set_text(day_layer, d_buffer_tx);
+
+	static char d_buffer_num[] = "25.";
+	strftime(d_buffer_num, sizeof(d_buffer_num), "%d", t);
+	text_layer_set_text(day_layer_num, d_buffer_num);
+
+	if(t->tm_wday == 3){
+		text_layer_set_text(day_layer, "W.");
 	}
 }
 
@@ -261,16 +292,10 @@ void dividing_proc(Layer *l, GContext *ctx){
 }
 
 void battery_proc(Layer *l, GContext *ctx){
+	int fix = (charge_percent*144)/100;
 	graphics_context_set_stroke_color(ctx, GColorWhite);
-	graphics_context_set_fill_color(ctx, GColorWhite);
-	
-	graphics_draw_rect(ctx, GRect(6, 67, 25, 36));
-	graphics_draw_rect(ctx, GRect(12, 63, 13, 5));
-	
-	float fill_fix = ((float)charge_percent/100)*30;
-	float pos_fix = (30-fill_fix)+70;
-	//APP_LOG(APP_LOG_LEVEL_INFO, "%d", (int)fill_fix);
-	graphics_fill_rect(ctx, GRect(9, pos_fix, 19, fill_fix), 0, GCornerNone);
+	graphics_draw_line(ctx, GPoint(0, 166), GPoint(fix, 166));
+	graphics_draw_line(ctx, GPoint(0, 167), GPoint(fix, 167));
 }
 
 void loading_proc(Layer *l, GContext *ctx){
@@ -287,44 +312,81 @@ void shake_handler(AccelAxisType axis, int32_t direction){
 		animate_layer(inverter_layer_get_layer(active_b), &current_f1, &GRect(0, bar_heights[1], 0, BAR_WIDTH), 1000, 0);
 		GRect current_f2 = layer_get_frame(inverter_layer_get_layer(steps_b));
 		animate_layer(inverter_layer_get_layer(steps_b), &current_f2, &GRect(0, bar_heights[2], 0, BAR_WIDTH), 1000, 0);
+
+		Layer *layer_steps_v = text_layer_get_layer(steps_v);
+		Layer *layer_distance_v = text_layer_get_layer(distance_v);
+		GetRekt current_layer3 = layer_get_frame(layer_steps_v);
+		GetRekt current_layer4 = layer_get_frame(layer_distance_v);
+
+		animate_layer(layer_steps_v, &current_layer3, &GRect(16, bar_heights[2]-4, 118, 38), 700, 0);
+		animate_layer(layer_distance_v, &current_layer4, &GRect(16, bar_heights[3]-4, 118, 38), 700, 0); 
+
 		bitmap_layer_set_bitmap(iconlayer_1, cals_eaten);
-		bitmap_layer_set_bitmap(iconlayer_2, battery_icon);
-		bitmap_layer_set_bitmap(iconlayer_4, cals_left_i);
+		bitmap_layer_set_bitmap(iconlayer_2, cals_left_i);
 		layer_set_hidden(bitmap_layer_get_layer(iconlayer_3), true);
+		layer_set_hidden(bitmap_layer_get_layer(iconlayer_4), true);
+
 		static char buffer[] = "Heavy/Medium (battery)";
-		snprintf(buffer, sizeof(buffer), "%s", main_data.battery[0]);
-		text_layer_set_text(active_v, buffer);
-		text_layer_set_text(steps_v, "Cals Left");
+		snprintf(buffer, sizeof(buffer), "Fitbit: %s", main_data.battery[0]);
+		text_layer_set_text(distance_v, buffer);
+
+		static char bt_buffer[] = "Disconnected.";
+		snprintf(bt_buffer, sizeof(buffer), "%s.", bt_bools[bluetooth_connection_service_peek()]);
+		text_layer_set_text(steps_v, bt_buffer);
+
 		refresh_bar(4);
 		refresh_bar(5);
+
+		size_t free_m = heap_bytes_free();
+		if(settings.debug){APP_LOG(APP_LOG_LEVEL_INFO, "%d bytes free", free_m);}
 	}
 	else{
-		layer_set_hidden(bitmap_layer_get_layer(iconlayer_3), false);
 		bitmap_layer_set_bitmap(iconlayer_1, cals_i);
 		bitmap_layer_set_bitmap(iconlayer_2, time_i);
+		layer_set_hidden(bitmap_layer_get_layer(iconlayer_3), false);
+		layer_set_hidden(bitmap_layer_get_layer(iconlayer_4), false);
+		bitmap_layer_set_bitmap(iconlayer_3, shoe_i);
 		bitmap_layer_set_bitmap(iconlayer_4, distance_i);
 		refresh_bar(0);
 		refresh_bar(1);
 		refresh_bar(2);
 		refresh_bar(3);
+
+		Layer *layer_steps_v = text_layer_get_layer(steps_v);
+		Layer *layer_distance_v = text_layer_get_layer(distance_v);
+		GetRekt current_layer3 = layer_get_frame(layer_steps_v);
+		GetRekt current_layer4 = layer_get_frame(layer_distance_v);
+
+		animate_layer(layer_steps_v, &current_layer3, &GRect(26, bar_heights[2]-4, 118, 38), 700, 0);
+		animate_layer(layer_distance_v, &current_layer4, &GRect(26, bar_heights[3]-4, 118, 38), 700, 0); 
+		/*
+		size_t free_m = heap_bytes_free();
+		APP_LOG(APP_LOG_LEVEL_INFO, "%d bytes free", free_m);
+		*/
 	}
 }
 	
 void window_load(Window *w){
 	Layer *window_layer = window_get_root_layer(w);
-	time_layer = text_layer_init(GRect(33, 58, 80, 38), false);
+
+	time_layer = text_layer_init(GRect(0, 58, 144, 50), false);
+	text_layer_set_text_alignment(time_layer, GTextAlignmentCenter);
 	text_layer_set_text(time_layer, "00 00");
+
+	day_layer = text_layer_init(GRect(0, 72, 24, 38), true);
+	text_layer_set_text_alignment(day_layer, GTextAlignmentCenter);
+	layer_add_child(window_layer, text_layer_get_layer(day_layer));
 	
-	date_layer = text_layer_init(GRect(33, 89, 80, 38), true);
-	text_layer_set_text(date_layer, "Fri, 22.08.'14");
-	
+	day_layer_num = text_layer_init(GRect(120, 72, 24, 38), true);
+	text_layer_set_text_alignment(day_layer_num, GTextAlignmentCenter);
+	layer_add_child(window_layer, text_layer_get_layer(day_layer_num));
+
 	dividing_layer = layer_create(GRect(0, 1, 144, 168));
 	layer_set_update_proc(dividing_layer, dividing_proc);
 	layer_add_child(window_layer, dividing_layer);
 	
 	battery_layer = layer_create(GRect(0, 0, 144, 168));
 	layer_set_update_proc(battery_layer, battery_proc);
-	layer_add_child(window_layer, battery_layer);
 
 	loading_layer = layer_create(GRect(0, 0, 144, 168));
 	layer_set_update_proc(loading_layer, loading_proc);
@@ -337,8 +399,6 @@ void window_load(Window *w){
 	cals_i = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_FIRE_ICON);
 	distance_i = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_DISTANCE_ICON);
 	cals_left_i = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_LEFT_ICON);
-	bt_icon = gbitmap_create_with_resource(RESOURCE_ID_BT_ICON);
-	battery_icon = gbitmap_create_with_resource(RESOURCE_ID_IMAGE_BATTERY_ICON);
 	
 	iconlayer_1 = bitmap_layer_create(GRect(0, bar_heights[0], 24, 24));
 	bitmap_layer_set_bitmap(iconlayer_1, cals_i);
@@ -356,11 +416,8 @@ void window_load(Window *w){
 	bitmap_layer_set_bitmap(iconlayer_4, distance_i);
 	layer_add_child(window_layer, bitmap_layer_get_layer(iconlayer_4));
 	
-	bt_icon_layer = bitmap_layer_create(GRect(100, 60, 50, 50));
-	bitmap_layer_set_bitmap(bt_icon_layer, bt_icon);
-	layer_add_child(window_layer, bitmap_layer_get_layer(bt_icon_layer));
-	layer_add_child(window_layer, text_layer_get_layer(date_layer));
 	layer_add_child(window_layer, text_layer_get_layer(time_layer));
+	layer_add_child(window_layer, battery_layer);
 	
 	calories_v = text_layer_init(GRect(26, bar_heights[0]-4, 118, 38), true);
 	text_layer_set_font(calories_v, fonts_get_system_font(FONT_KEY_GOTHIC_24_BOLD));
@@ -397,6 +454,9 @@ void window_load(Window *w){
 	
 	distance_b = inverter_layer_create(GRect(0, bar_heights[3], 0, BAR_WIDTH));
 	layer_add_child(window_layer, inverter_layer_get_layer(distance_b));
+
+	theme = inverter_layer_create(GetRekt(0, 0, 144, 168));
+	layer_add_child(window_layer, inverter_layer_get_layer(theme));
 	
 	struct tm *t;
   	time_t temp;        
@@ -406,11 +466,12 @@ void window_load(Window *w){
 	
 	refresh_timer = app_timer_register(1000, refresh_callback, NULL);
 	
-	bool con = bluetooth_connection_service_peek();
-	bt_handler(con);
-	
 	BatteryChargeState state = battery_state_service_peek();
 	battery_handler(state);
+
+	refresh_settings();
+
+	new_data_timer = app_timer_register(300000, get_data, NULL);
 }
 
 void window_unload(Window *w){
@@ -434,18 +495,22 @@ void init(){
 	app_message_register_inbox_received(rec_handler);
 	app_message_open(512, 512);
 
-	strap_init();
+	//strap_init();
 
 	int value = persist_read_data(0, &main_data, sizeof(main_data));
-	APP_LOG(APP_LOG_LEVEL_INFO, "FitFace: %d read", value);
+	if(settings.debug){APP_LOG(APP_LOG_LEVEL_INFO, "FitFace: %d read from Fitbit data.", value);}
+	int value2 = persist_read_data(1, &settings, sizeof(settings));
+	if(settings.debug){APP_LOG(APP_LOG_LEVEL_INFO, "FitFace: %d read from settings struct.", value2);}
 	
 	window_stack_push(window, true);
 }
 
 void deinit(){
-	strap_deinit();
+	//strap_deinit();
 	int value = persist_write_data(0, &main_data, sizeof(main_data));
-	APP_LOG(APP_LOG_LEVEL_INFO, "FitFace: %d written", value);
+	if(settings.debug){APP_LOG(APP_LOG_LEVEL_INFO, "FitFace: %d written to Fitbit data.", value);}
+	int value2 = persist_write_data(1, &settings, sizeof(settings));
+	if(settings.debug){APP_LOG(APP_LOG_LEVEL_INFO, "FitFace: %d written to settings struct.", value2);}
 	tick_timer_service_unsubscribe();
 	accel_tap_service_unsubscribe();
 	window_destroy(window);

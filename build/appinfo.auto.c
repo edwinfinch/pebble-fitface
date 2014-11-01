@@ -9,7 +9,7 @@ const PebbleProcessInfo __pbl_app_info __attribute__ ((section (".pbl_header")))
   .load_size = 0xb6b6,
   .offset = 0xb6b6b6b6,
   .crc = 0xb6b6b6b6,
-  .name = "FF Beta 5",
+  .name = "FitFace",
   .company = "Edwin Finch",
   .icon_resource_id = RESOURCE_ID_menuicon,
   .sym_table_addr = 0xA7A7A7A7,
