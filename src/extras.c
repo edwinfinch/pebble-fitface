@@ -6,7 +6,7 @@ TextLayer* text_layer_init(GRect location, bool is_date){
 	text_layer_set_text_color(layer, GColorWhite);
 	text_layer_set_background_color(layer, GColorClear);
 	text_layer_set_text_alignment(layer, GTextAlignmentCenter);
-	text_layer_set_font(layer, fonts_load_custom_font(resource_get_handle(RESOURCE_ID_FONT_IMPACT_44)));
+	text_layer_set_font(layer, fonts_load_custom_font(resource_get_handle(RESOURCE_ID_FONT_IMPACT_40)));
 	if(is_date){
 		text_layer_set_font(layer, fonts_get_system_font(FONT_KEY_GOTHIC_14_BOLD));
 	}

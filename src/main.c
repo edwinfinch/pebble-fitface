@@ -54,12 +54,12 @@ void refresh_bar(int bar){
 		if(main_data.imperial){
 			static char buffer_[] = "Hello world!";
 			strcpy(buffer_, floatToString(pre_data[0]));
-			snprintf(buffer[bar], sizeof(buffer[bar]), "~%s mi", buffer_);
+			snprintf(buffer[bar], sizeof(buffer[bar]), "%s mi", buffer_);
 		}
 		else{
 			static char buffer_[] = "Hello world!";
 			strcpy(buffer_, floatToString(pre_data[0]));
-			snprintf(buffer[bar], sizeof(buffer[bar]), "~%s km", buffer_);
+			snprintf(buffer[bar], sizeof(buffer[bar]), "%s km", buffer_);
 		}
 	}
 	
@@ -237,12 +237,16 @@ void process_tuple(Tuple *t){
 			app_timer_cancel(refresh_timer);
 			switch(value){
 				case 1:
-					notif_layer_push_notif("FitFace", "Error 404: No token. Please enter a token manually on the Fitface settings page.", 3, 15000);
-					text_layer_set_text(bar_1, "404");
+					notif_layer_push_notif("FitFace Error", "Error 402: No token. I assume you're an iOS user. Email contact@edwinfinch.com.", 3, 15000);
+					text_layer_set_text(bar_1, "402");
 					break;
 				case 2:
-					notif_layer_push_notif("FitFace", "Error 401: No access. Please email contact@edwinfinch.com to get your account reset.", 3, 15000);
+					notif_layer_push_notif("FitFace Error", "Error 401: No access. Please email contact@edwinfinch.com to get your account reset.", 3, 15000);
 					text_layer_set_text(bar_1, "401");
+					break;
+				case 3:
+					notif_layer_push_notif("FitFace Error", "Error 404: No reason provided. Make sure you're logged in!", 3, 15000);
+					text_layer_set_text(bar_1, "404");
 					break;
 			}
 			loading_animation(false);
@@ -363,10 +367,10 @@ void shake_handler(AccelAxisType axis, int32_t direction){
 	}
 	else{
 		bitmap_layer_set_bitmap(iconlayer_1, cals_i);
-		bitmap_layer_set_bitmap(iconlayer_2, time_i);
+		bitmap_layer_set_bitmap(iconlayer_3, time_i);
 		layer_set_hidden(bitmap_layer_get_layer(iconlayer_3), false);
 		layer_set_hidden(bitmap_layer_get_layer(iconlayer_4), false);
-		bitmap_layer_set_bitmap(iconlayer_3, shoe_i);
+		bitmap_layer_set_bitmap(iconlayer_2, shoe_i);
 		bitmap_layer_set_bitmap(iconlayer_4, distance_i);
 		refresh_bar(0);
 		refresh_bar(1);
@@ -390,16 +394,17 @@ void shake_handler(AccelAxisType axis, int32_t direction){
 void window_load(Window *w){
 	Layer *window_layer = window_get_root_layer(w);
 
-	time_layer = text_layer_init(GRect(0, 58, 144, 50), false);
+	time_layer = text_layer_init(GRect(0, 60, 144, 50), false);
 	text_layer_set_text_alignment(time_layer, GTextAlignmentCenter);
 	text_layer_set_text(time_layer, "00 00");
 
-	day_layer = text_layer_init(GRect(0, 76, 24, 38), true);
+	day_layer = text_layer_init(GRect(2, 75, 24, 38), true);
 	text_layer_set_text_alignment(day_layer, GTextAlignmentCenter);
 	layer_add_child(window_layer, text_layer_get_layer(day_layer));
 	
-	day_layer_num = text_layer_init(GRect(120, 76, 24, 38), true);
+	day_layer_num = text_layer_init(GRect(120, 72, 24, 38), true);
 	text_layer_set_text_alignment(day_layer_num, GTextAlignmentCenter);
+	text_layer_set_font(day_layer_num, fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD));
 	layer_add_child(window_layer, text_layer_get_layer(day_layer_num));
 
 	dividing_layer = layer_create(GRect(0, 1, 144, 168));

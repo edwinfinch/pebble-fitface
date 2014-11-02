@@ -14,7 +14,6 @@ Pebble.addEventListener("webviewclosed", function(e){
         for(var key in values) {
             localStorage.setItem(key, values[key]);
         }    
-        localStorage.setItem("custToken", values.token);
         Pebble.sendAppMessage(
             values
         );
@@ -37,6 +36,25 @@ function getToken(){
     }
 }
 
+var publicData;
+
+function sendFix(){
+    //Either I am retarded or not because I don't believe pebble supports sending floats so I use this cheap trick
+    var distanceFixMI_v = ((data.distance_v_mi)*100);
+    var distanceFixKM_v = ((data.distance_v)*100);
+    var distanceFixMI_g = ((data.distance_g_mi)*100);
+    var distanceFixKM_g = ((data.distance_g)*100);
+
+    console.log("Sending fixed distance data message.");
+
+    Pebble.sendAppMessage({
+        "distance_v_mi": distanceFixMI_v,
+        "distance_g_mi": distanceFixMI_g,
+        "distance_v": distanceFixKM_v,
+        "distance_g": distanceFixKM_g
+    });
+}
+
 function getData() {
     Pebble.sendAppMessage({
         "loading_data": 1
@@ -54,24 +72,17 @@ function getData() {
                 Pebble.sendAppMessage({"error":2});
                 return;
             }
+            else if(req.responseText.indexOf("Error") != -1){
+                Pebble.sendAppMessage({"error":3});
+                return;
+            }
 
             data = JSON.parse(req.responseText);
-            console.log("Response: " + data);
+            publicData = data;
 
             Pebble.sendAppMessage(data);
 
-            //Either I am retarded or not because I don't believe pebble supports sending floats so I use this cheap trick
-            var distanceFixMI_v = ((data.distance_v_mi)*100);
-            var distanceFixKM_v = ((data.distance_v)*100);
-            var distanceFixMI_g = ((data.distance_g_mi)*100);
-            var distanceFixKM_g = ((data.distance_g)*100);
-            Pebble.sendAppMessage({
-                "distance_v_mi": distanceFixMI_v,
-                "distance_g_mi": distanceFixMI_g,
-                "distance_v": distanceFixKM_v,
-                "distance_g": distanceFixKM_g
-            });
-            //}
+            setTimeout(sendFix, 400);
             } else {
             console.log("Error: could not connect! (is internet connection kill?)");
             }
