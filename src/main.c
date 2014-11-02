@@ -394,7 +394,7 @@ void shake_handler(AccelAxisType axis, int32_t direction){
 void window_load(Window *w){
 	Layer *window_layer = window_get_root_layer(w);
 
-	time_layer = text_layer_init(GRect(0, 60, 144, 50), false);
+	time_layer = text_layer_init(GRect(2, 60, 144, 50), false);
 	text_layer_set_text_alignment(time_layer, GTextAlignmentCenter);
 	text_layer_set_text(time_layer, "00 00");
 
@@ -402,7 +402,7 @@ void window_load(Window *w){
 	text_layer_set_text_alignment(day_layer, GTextAlignmentCenter);
 	layer_add_child(window_layer, text_layer_get_layer(day_layer));
 	
-	day_layer_num = text_layer_init(GRect(120, 72, 24, 38), true);
+	day_layer_num = text_layer_init(GRect(118, 72, 24, 38), true);
 	text_layer_set_text_alignment(day_layer_num, GTextAlignmentCenter);
 	text_layer_set_font(day_layer_num, fonts_get_system_font(FONT_KEY_GOTHIC_18_BOLD));
 	layer_add_child(window_layer, text_layer_get_layer(day_layer_num));
