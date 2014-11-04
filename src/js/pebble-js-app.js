@@ -23,23 +23,35 @@ Pebble.addEventListener("webviewclosed", function(e){
 function getToken(){
     var accToken = Pebble.getAccountToken();
     var localToken = localStorage.getItem("custToken");
-    if(accToken.length > 1){
+    var useGenToken = parseInt(localStorage.getItem("useGenToken"));
+    var genToken = localStorage.getItem("genToken");
+    if(accToken.length > 1 && useGenToken !== true){
         localStorage.setItem("custToken", accToken);
+        console.log("Returning actual account token.");
         return accToken;
     }
     else if(localToken.length > 5){
+        console.log("Returning stored account token.");
         return localToken;
     }
+    else if(useGenToken){
+        console.log("Returning stored generated token.");
+        return genToken;
+    }
     else{
-        Pebble.sendAppMessage({"error":1});
-        return 1337;
+        Pebble.showSimpleNotificationOnPebble("FitFace", "Please log in again through the settings page.");
+        console.log("Creating generated token and storing it in 'genToken'.");
+        localStorage.setItem("useGenToken", 1);
+        var generated = Math.random() * 10000000000000;
+        var generatedFix = Math.floor(generated);
+        localStorage.setItem("genToken", generatedFix);
+        return generatedFix;
     }
 }
 
 var publicData;
 
 function sendFix(){
-    //Either I am retarded or not because I don't believe pebble supports sending floats so I use this cheap trick
     var distanceFixMI_v = ((data.distance_v_mi)*100);
     var distanceFixKM_v = ((data.distance_v)*100);
     var distanceFixMI_g = ((data.distance_g_mi)*100);

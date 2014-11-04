@@ -87,8 +87,8 @@
     },
     "shortName": "FitFace",
     "uuid": "5058779b-40f4-48d8-8dcd-2c94b1e14218",
-    "versionCode": 6,
-    "versionLabel": "1.0",
+    "versionCode": 7,
+    "versionLabel": "1.1",
     "watchapp": {
         "watchface": true
     }
