@@ -1,4 +1,5 @@
 var configUrl = "http://www.edwinfinch.com/fitface/fitpebble-php/?token=";
+var accToken;
 
 Pebble.addEventListener("showConfiguration", function(e) {
     Pebble.openURL(configUrl + getToken());
@@ -21,7 +22,7 @@ Pebble.addEventListener("webviewclosed", function(e){
 });
 
 function getToken(){
-    var accToken = Pebble.getAccountToken();
+    accToken = Pebble.getAccountToken();
     var localToken = localStorage.getItem("custToken");
     var useGenToken = parseInt(localStorage.getItem("useGenToken"));
     var genToken = localStorage.getItem("genToken");
@@ -107,6 +108,12 @@ Pebble.addEventListener("appmessage", function(e) {
     getData();
 });
 
+function getACCToken(){
+
+}
+
 Pebble.addEventListener("ready", function(e) {
     getData();
+    accToken = Pebble.getAccountToken();
+    setTimeout(Pebble.getAccountToken(), 0);
 });
