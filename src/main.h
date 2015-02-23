@@ -27,6 +27,7 @@ typedef struct Settings {
 	bool batterybar;
 	bool theme;
 	bool debug;
+	uint8_t override;
 }Settings;
 
 const int bar_heights[6] = {

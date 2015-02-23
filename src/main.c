@@ -22,6 +22,16 @@ char* floatToString(double number){
 	return buffer;
 }
 
+bool is_imperial(){
+	if(!main_data.imperial){
+		return false;
+	}
+	if(settings.override == 2){
+		return false;
+	}
+	return true;
+}
+
 void refresh_bar(int bar){
 	double pre_data[2] = {
 		0, 0
@@ -30,12 +40,12 @@ void refresh_bar(int bar){
 	pre_data[1] = (double)main_data.goals[bar];
 
 	bool distance = false;
-	if(main_data.imperial && bar == 3){
+	if(is_imperial() && bar == 3){
 		distance = true;
 		pre_data[0] = (double)(main_data.distanceMI[0])/100;
 		pre_data[1] = (double)(main_data.distanceMI[1])/100;
 	}
-	else if(!main_data.imperial && bar == 3){
+	else if(!is_imperial() && bar == 3){
 		pre_data[0] = (double)(main_data.current_values[bar])/100;
 		pre_data[1] = (double)(main_data.goals[bar])/100;
 		distance = true;
@@ -51,13 +61,13 @@ void refresh_bar(int bar){
 		snprintf(buffer[bar], sizeof(buffer[bar]), "%d", (int)pre_data[0]);
 	}
 	else{
-		if(main_data.imperial){
-			static char buffer_[] = "Hello world!";
+		if(is_imperial()){
+			static char buffer_[] = "Hello world...";
 			strcpy(buffer_, floatToString(pre_data[0]));
 			snprintf(buffer[bar], sizeof(buffer[bar]), "%s mi", buffer_);
 		}
 		else{
-			static char buffer_[] = "Hello world!";
+			static char buffer_[] = "Hello world...";
 			strcpy(buffer_, floatToString(pre_data[0]));
 			snprintf(buffer[bar], sizeof(buffer[bar]), "%s km", buffer_);
 		}
@@ -255,6 +265,9 @@ void process_tuple(Tuple *t){
 			text_layer_set_text(bar_0, "Error");
 			text_layer_set_text(bar_2, "Contact");
 			text_layer_set_text(bar_3, "Edwin Finch");
+			break;
+		case 24:
+			settings.override = value;
 			break;
 	}
 }
